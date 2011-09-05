@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent">
+    
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content">
+    
+		<Button android:id="@+id/btn_launch_oauth"
+		            android:layout_width="wrap_content"
+		            android:layout_height="wrap_content"
+		            android:text="Launch OAuth Flow"/>
+	
+		<Button android:id="@+id/btn_clear_credentials"
+		            android:layout_width="wrap_content"
+		            android:layout_height="wrap_content"
+		            android:text="Clear Credentials" />	
+	            
+	</LinearLayout> 
+	     
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/checkin_section"
+    android:orientation="horizontal"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content">	     
+	            
+		<TextView android:id="@+id/checkin_text"
+	                android:layout_width="wrap_content"
+	                android:layout_height="wrap_content"
+	                android:text=""
+				    android:textColor="#FFFFFF"
+				    android:typeface="normal"/>  
+				
+		<Button android:id="@+id/btn_checkin"
+		            android:layout_width="wrap_content"
+		            android:layout_height="wrap_content"
+		            android:text="Checkin"/>			    
+			    
+	</LinearLayout>
+	
+   <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content">	     
+	            
+		<TextView android:id="@+id/response_code"
+	                android:layout_width="wrap_content"
+	                android:layout_height="wrap_content"
+	                android:text=""
+				    android:textColor="#FFFFFF"
+				    android:typeface="normal"/>  
+			
+	</LinearLayout>	
+			    
+	<com.google.android.maps.MapView
+	    android:id="@+id/mapview1"
+	    android:layout_width="fill_parent"
+	    android:layout_height="fill_parent"
+	    android:enabled="true"
+	    android:clickable="true"
+	    android:apiKey="0KSgjU4gdXa3LaJ9G2BGBgO7jB9eveC_zelBh5A" />
+			    
+</LinearLayout>

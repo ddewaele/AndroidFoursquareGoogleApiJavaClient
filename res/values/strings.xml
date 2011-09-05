@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FoursquareAndroid</string>
+    <string name="foursquare_place_show_on_map">Show on map</string>
+    <string name="foursquare_place_checkin">Checkin</string>
+    <string name="no_address_info_found">No address info found.</string>
+    <string name="checkin_msg">Checking in from Android app</string>
+</resources>
