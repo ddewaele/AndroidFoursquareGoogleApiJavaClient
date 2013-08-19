@@ -1,41 +1,39 @@
 package com.ecs.android.foursquare;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.v4.app.FragmentActivity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.ecs.android.foursquare.oauth2.OAuth2ClientCredentials;
 import com.ecs.android.foursquare.oauth2.OAuthAccessTokenActivity;
-import com.ecs.android.foursquare.oauth2.store.CredentialStore;
-import com.ecs.android.foursquare.oauth2.store.SharedPreferencesCredentialStore;
-import com.google.android.maps.GeoPoint;
-import com.google.android.maps.ItemizedOverlay;
-import com.google.android.maps.MapActivity;
-import com.google.android.maps.MapController;
-import com.google.android.maps.MapView;
-import com.google.android.maps.OverlayItem;
-import com.google.api.client.auth.oauth2.draft10.AccessTokenResponse;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.api.client.auth.oauth2.Credential;
 
 import fi.foyt.foursquare.api.FoursquareApi;
-import fi.foyt.foursquare.api.FoursquareApiException;
 import fi.foyt.foursquare.api.Result;
 import fi.foyt.foursquare.api.entities.Checkin;
 import fi.foyt.foursquare.api.entities.Setting;
 import fi.foyt.foursquare.api.io.DefaultIOHandler;
 
-public class FoursquareApiSample extends MapActivity {
+public class FoursquareApiSample extends FragmentActivity {
 
-	private ArrayList<OverlayItem> mOverlays = new ArrayList<OverlayItem>();
+	private ArrayList<Marker> markers = new ArrayList<Marker>();
 	
 	private FoursquareApi foursquareApi;
 	
@@ -43,11 +41,8 @@ public class FoursquareApiSample extends MapActivity {
 	private TextView apiResponseCode; 
 	private TextView checkinText;
 	
-	private MapView mapView;
-	private MapController mc;
+	private GoogleMap googleMap;
 
-	private Drawable drawable;
-	
 	String venueName = null;
 	String venueAddress = null;
 	String venueId = null;
@@ -55,43 +50,46 @@ public class FoursquareApiSample extends MapActivity {
 	View checkinSection;
 	
 	private boolean showCheckinSection = false;
+
+	private SupportMapFragment mapFragment;
+
+	private OAuth2Helper oAuth2Helper;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 		this.prefs = PreferenceManager.getDefaultSharedPreferences(this);
-
-		this.drawable = this.getResources().getDrawable(R.drawable.pin_red);
+		oAuth2Helper = new OAuth2Helper(this.prefs);
 		
-		this.mapView = (MapView) findViewById(R.id.mapview1);
 		this.checkinSection = findViewById(R.id.checkin_section);
 		this.checkinText = (TextView) findViewById(R.id.checkin_text);
 		this.apiResponseCode = (TextView) findViewById(R.id.response_code);
 		
-		this.mapView.setBuiltInZoomControls(true);
-		this.mapView.setVisibility(View.GONE);
-		this.mc = mapView.getController();
+		mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+		googleMap = mapFragment.getMap();
+		googleMap.setMyLocationEnabled(true);
+		
+		googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+			
+			@Override
+			public void onMapClick(LatLng point) {
+	    		popFoursquareVenueList(point.latitude,point.longitude);
+				
+			}
+		});
 		
 		this.checkinSection.setVisibility(View.GONE);
 		
-		HelloItemizedOverlay itemizedoverlay = new HelloItemizedOverlay(drawable);
-	    mapView.getOverlays().add(itemizedoverlay);
-	    
 		if (getIntent().getExtras()!=null) {
 	    	Double lat = getIntent().getExtras().getDouble(Constants.PLACE_LAT_FIELD);
 	    	Double lng = getIntent().getExtras().getDouble(Constants.PLACE_LNG_FIELD);
 	    	venueAddress = getIntent().getExtras().getString(Constants.PLACE_ADDRESS_FIELD);
 	    	venueName = getIntent().getExtras().getString(Constants.PLACE_NAME_FIELD);
 	    	venueId = getIntent().getExtras().getString(Constants.PLACE_ID_FIELD);
-	    	GeoPoint p = new GeoPoint((int) (lat * 1E6), (int) (lng * 1E6));
-	    	HelloItemizedOverlay venueOverlay = (HelloItemizedOverlay) mapView.getOverlays().get(0);
-	        OverlayItem overlayitem = new OverlayItem(p, venueName, venueAddress);
-	        venueOverlay.addOverlay(overlayitem);
-	        mc.animateTo(p);
-	        mc.setCenter(p);
-	        mc.setZoom(16);
-	        showCheckinSection = true;
+	    	
+	        addMarkerToMap(new LatLng(lat,lng), venueName, venueAddress);
+	        showCheckinSection = true;	
 	        this.checkinSection.setVisibility(View.VISIBLE);
 	    }
 		
@@ -114,8 +112,12 @@ public class FoursquareApiSample extends MapActivity {
 		Button clearCredentials = (Button) findViewById(R.id.btn_clear_credentials);
 	    clearCredentials.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View v) {
-				clearCredentials();
-				new PerformApiCallTask().execute();
+				try {
+					clearCredentials();
+					new PerformApiCallTask().execute();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 
 		});
@@ -134,17 +136,42 @@ public class FoursquareApiSample extends MapActivity {
 		new PerformApiCallTask().execute();
 	}
 	
+	public void addMarkerToMap(LatLng latLng,String title,String snippet) {
+	    Marker marker = googleMap.addMarker(new MarkerOptions().position(latLng)
+	             .title("title")
+	             .snippet("snippet"));
+	    markers.add(marker);
+	    
+	    googleMap.animateCamera(
+	    		CameraUpdateFactory.newCameraPosition(CameraPosition.fromLatLngZoom(latLng, 10)) 
+        );           	    
+
+	}
+	
 	/**
 	 * Clears our credentials (token and token secret) from the shared preferences.
 	 * We also setup the authorizer (without the token).
 	 * After this, no more authorized API calls will be possible.
+	 * @throws IOException 
 	 */
-    private void clearCredentials() {
-    	new SharedPreferencesCredentialStore(prefs).clearCredentials();
+    private void clearCredentials() throws IOException {
+    	this.oAuth2Helper.clearCredentials();
     	this.checkinSection.setVisibility(View.GONE);
-    	this.mapView.setVisibility(View.GONE);
+    	hideMap();
     }
 	
+    private void hideMap() {
+//    	FragmentManager fm = getSupportFragmentManager();
+//    	FragmentTransaction ft = fm.beginTransaction();
+//    	ft.hide(this.mapFragment).commit();		
+	}
+
+    private void showMap() {
+//    	FragmentManager fm = getSupportFragmentManager();
+//    	FragmentTransaction ft = fm.beginTransaction();
+//    	ft.show(this.mapFragment).commit();		
+	}
+
     private class CheckinTask extends AsyncTask<Uri, Void, Void> {
 
 		private String apiStatusMsg;
@@ -158,7 +185,7 @@ public class FoursquareApiSample extends MapActivity {
 				} else {
 					apiStatusMsg = result.getMeta().getErrorDetail();
 				}
-			} catch (FoursquareApiException e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
             return null;
@@ -213,12 +240,12 @@ public class FoursquareApiSample extends MapActivity {
 		@Override
 		protected void onPostExecute(Void result) {
 			if (apiCallSuccess) {
-				mapView.setVisibility(View.VISIBLE);
+				showMap();
 				if (showCheckinSection) {
 					checkinText.setText(venueName + " " + venueAddress);
 				}
 			} else {
-				mapView.setVisibility(View.GONE);
+				hideMap();
 				apiResponseCode.setText(apiStatusMsg);
 			}
 
@@ -226,50 +253,6 @@ public class FoursquareApiSample extends MapActivity {
 
 	}
     
-    private class HelloItemizedOverlay extends ItemizedOverlay<OverlayItem>
-    {
-    	
-    	/**
-    	 * Calling populate here to avoid a nullpointerexception.
-    	 * 
-    	 * @param defaultMarker
-    	 */
-    	public HelloItemizedOverlay(Drawable defaultMarker) {
-    		  super(boundCenterBottom(defaultMarker));
-    		  populate();
-    	}
-    	
-    	public void addOverlay(OverlayItem overlay) {
-    	    mOverlays.add(overlay);
-    	    populate();
-    	}
-    	
-    	@Override
-    	protected OverlayItem createItem(int i) {
-    	  return mOverlays.get(i);
-    	}
-
-    	@Override
-    	public int size() {
-    	  return mOverlays.size();
-    	}
-        
-    	/**
-    	 * 
-    	 * Triggered when the user clicks on the map.
-    	 * 
-    	 */
-    	@Override
-		public boolean onTap(GeoPoint p, MapView mapView) {
-    		HelloItemizedOverlay itemizedoverlay = (HelloItemizedOverlay) mapView.getOverlays().get(0);
-            OverlayItem overlayitem = new OverlayItem(p, "Location at " + "title","snippet");
-            itemizedoverlay.addOverlay(overlayitem);
-            mapView.invalidate();
-    		popFoursquareVenueList(p.getLatitudeE6()/1E6,p.getLongitudeE6()/1E6);
-			return true;
-		}    
-
-    }
     
     /**
      * 
@@ -286,22 +269,14 @@ public class FoursquareApiSample extends MapActivity {
 		startActivity(intent);	
     }
 
-	
-    @Override
-    protected boolean isRouteDisplayed() {
-        return false;
-    }
-    
-	public FoursquareApi getFoursquareApi() {
+	public FoursquareApi getFoursquareApi() throws IOException {
 		if (this.foursquareApi==null) {
 			this.prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-			CredentialStore credentialStore = new SharedPreferencesCredentialStore(prefs);
-			
-			AccessTokenResponse accessTokenResponse = credentialStore.read();
-			this.foursquareApi = new FoursquareApi(OAuth2ClientCredentials.CLIENT_ID,
-					OAuth2ClientCredentials.CLIENT_SECRET,
-					OAuth2ClientCredentials.REDIRECT_URI,
-					accessTokenResponse.accessToken, new DefaultIOHandler());
+			Credential credential = this.oAuth2Helper.loadCredential();
+			this.foursquareApi = new FoursquareApi(Constants.OAUTH2PARAMS.getClientId(),
+					Constants.OAUTH2PARAMS.getClientSecret(),
+					Constants.OAUTH2PARAMS.getRederictUri(),
+					credential.getAccessToken(), new DefaultIOHandler());
 		}
 		return this.foursquareApi;
 		

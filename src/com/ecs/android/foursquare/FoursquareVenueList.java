@@ -1,5 +1,6 @@
 package com.ecs.android.foursquare;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,22 +23,13 @@ import android.widget.RadioButton;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.ecs.android.foursquare.oauth2.OAuth2ClientCredentials;
-import com.ecs.android.foursquare.oauth2.store.CredentialStore;
-import com.ecs.android.foursquare.oauth2.store.SharedPreferencesCredentialStore;
 import com.ecs.foursquare.model.FoursquareResponse;
 import com.ecs.foursquare.model.Venue;
-import com.google.api.client.auth.oauth2.draft10.AccessProtectedResource;
-import com.google.api.client.auth.oauth2.draft10.AccessTokenResponse;
-import com.google.api.client.auth.oauth2.draft10.AccessProtectedResource.Method;
+import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpRequest;
-import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.http.json.JsonHttpParser;
-import com.google.api.client.json.jackson.JacksonFactory;
+import com.google.api.client.json.JsonObjectParser;
 
 import fi.foyt.foursquare.api.FoursquareApi;
 import fi.foyt.foursquare.api.Result;
@@ -52,7 +44,7 @@ public class FoursquareVenueList extends ListActivity {
 	private FoursquareApi foursquareApi;
 	private List<CompactVenue> veneusMap = new ArrayList<CompactVenue>();
 	private SharedPreferences prefs;
-	private CredentialStore credentialStore;
+	private OAuth2Helper oAuth2Helper;
 	private double lat;
 	private double lng;
 
@@ -61,7 +53,7 @@ public class FoursquareVenueList extends ListActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.places_list);
 		this.prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-		this.credentialStore = new SharedPreferencesCredentialStore(prefs);
+		this.oAuth2Helper = new OAuth2Helper(this.prefs);
 
 		if (getIntent().getExtras() != null) {
 			lat = getIntent().getExtras().getDouble(Constants.PLACE_LAT_FIELD);
@@ -92,13 +84,13 @@ public class FoursquareVenueList extends ListActivity {
 		
 	}
 	
-	public FoursquareApi getFoursquareApi() {
+	public FoursquareApi getFoursquareApi() throws IOException {
 		if (this.foursquareApi==null) {
-			AccessTokenResponse accessTokenResponse = credentialStore.read();
-			this.foursquareApi = new FoursquareApi(OAuth2ClientCredentials.CLIENT_ID,
-					OAuth2ClientCredentials.CLIENT_SECRET,
-					OAuth2ClientCredentials.REDIRECT_URI,
-					accessTokenResponse.accessToken, new DefaultIOHandler());
+			Credential credential = oAuth2Helper.loadCredential();
+			this.foursquareApi = new FoursquareApi(Constants.OAUTH2PARAMS.getClientId(),
+					Constants.OAUTH2PARAMS.getClientSecret(),
+					Constants.OAUTH2PARAMS.getRederictUri(),
+					credential.getAccessToken(), new DefaultIOHandler());
 		}
 		return this.foursquareApi;
 		
@@ -140,23 +132,12 @@ public class FoursquareVenueList extends ListActivity {
 
 	}
 	
-	protected HttpRequestFactory createApiRequestFactory(HttpTransport transport, String accessToken) {
-		return transport.createRequestFactory(new AccessProtectedResource(accessToken, Method.AUTHORIZATION_HEADER) {
-			protected void onAccessToken(String accessToken) {
-				// Called when a new access token is issues. Not applicable for Foursquare as Foursquare access tokens are long-lived.");
-			};
-			
-			
-		});
-	}
+	
 	
 	public void performFoursquareApiCallUsingGoogleApiJavaClient() throws Exception {
-		AccessTokenResponse accessTokenResponse = credentialStore.read();
-		HttpTransport transport = new NetHttpTransport();
 		GenericUrl genericUrl = new GenericUrl(FOURSQUARE_API_ENDPOINT);
 		genericUrl.put("ll",lat + "," + lng);
-		HttpRequest httpRequest = createApiRequestFactory(transport, accessTokenResponse.accessToken).buildGetRequest(
-				genericUrl);
+		HttpRequest httpRequest = oAuth2Helper.buildGetRequest(genericUrl);
 		HttpResponse httpResponse = httpRequest.execute();
 		JSONObject object = new JSONObject(httpResponse.parseAsString());
 		JSONObject fourSquareResponse = (JSONObject) object.get("response");
@@ -165,11 +146,8 @@ public class FoursquareVenueList extends ListActivity {
 		JSONArray items = (JSONArray)group.get("items");
 		Log.i(Constants.TAG, "Found venues " + items);
 		
-		httpRequest = createApiRequestFactory(transport, accessTokenResponse.accessToken).buildGetRequest(
-				genericUrl);
-		JsonHttpParser parser = new JsonHttpParser();
-	    parser.jsonFactory = new JacksonFactory();
-	    httpRequest.addParser(parser);
+		httpRequest = oAuth2Helper.buildGetRequest(genericUrl);
+		httpRequest.setParser(new JsonObjectParser(new com.google.api.client.json.jackson2.JacksonFactory()));
 		httpResponse = httpRequest.execute();
 		FoursquareResponse foursquareResponse2 = httpResponse.parseAs(FoursquareResponse.class);
 		Venue[] venues = foursquareResponse2.response.groups[0].items;

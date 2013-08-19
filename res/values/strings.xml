@@ -5,4 +5,7 @@
     <string name="foursquare_place_checkin">Checkin</string>
     <string name="no_address_info_found">No address info found.</string>
     <string name="checkin_msg">Checking in from Android app</string>
+    <string name="checkin">Checkin</string>
+    <string name="clear_credentials">Clear Credentials</string>
+    <string name="launch_oauth_flow">Launch OAuth Flow</string>
 </resources>

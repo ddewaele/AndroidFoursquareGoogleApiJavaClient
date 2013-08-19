@@ -4,7 +4,7 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent">
     
-    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    <LinearLayout
     android:orientation="horizontal"
     android:layout_width="fill_parent"
     android:layout_height="wrap_content">
@@ -12,16 +12,16 @@
 		<Button android:id="@+id/btn_launch_oauth"
 		            android:layout_width="wrap_content"
 		            android:layout_height="wrap_content"
-		            android:text="Launch OAuth Flow"/>
+		            android:text="@string/launch_oauth_flow"/>
 	
 		<Button android:id="@+id/btn_clear_credentials"
 		            android:layout_width="wrap_content"
 		            android:layout_height="wrap_content"
-		            android:text="Clear Credentials" />	
+		            android:text="@string/clear_credentials" />	
 	            
 	</LinearLayout> 
 	     
-    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    <LinearLayout
     android:id="@+id/checkin_section"
     android:orientation="horizontal"
     android:layout_width="fill_parent"
@@ -37,11 +37,11 @@
 		<Button android:id="@+id/btn_checkin"
 		            android:layout_width="wrap_content"
 		            android:layout_height="wrap_content"
-		            android:text="Checkin"/>			    
+		            android:text="@string/checkin"/>			    
 			    
 	</LinearLayout>
 	
-   <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+   <LinearLayout
     android:orientation="horizontal"
     android:layout_width="fill_parent"
     android:layout_height="wrap_content">	     
@@ -55,12 +55,11 @@
 			
 	</LinearLayout>	
 			    
-	<com.google.android.maps.MapView
-	    android:id="@+id/mapview1"
-	    android:layout_width="fill_parent"
-	    android:layout_height="fill_parent"
-	    android:enabled="true"
-	    android:clickable="true"
-	    android:apiKey="0KSgjU4gdXa3LaJ9G2BGBgO7jB9eveC_zelBh5A" />
+<fragment
+  android:id="@+id/map"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  class="com.google.android.gms.maps.SupportMapFragment"/>
+
 			    
 </LinearLayout>
