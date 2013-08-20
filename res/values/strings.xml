@@ -8,4 +8,5 @@
     <string name="checkin">Checkin</string>
     <string name="clear_credentials">Clear Credentials</string>
     <string name="launch_oauth_flow">Launch OAuth Flow</string>
+    <string name="menu_logout">Logout</string>
 </resources>

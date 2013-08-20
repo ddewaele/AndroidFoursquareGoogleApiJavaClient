@@ -9,7 +9,8 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.v4.app.FragmentActivity;
+import android.support.v7.app.ActionBarActivity;
+import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -31,15 +32,14 @@ import fi.foyt.foursquare.api.entities.Checkin;
 import fi.foyt.foursquare.api.entities.Setting;
 import fi.foyt.foursquare.api.io.DefaultIOHandler;
 
-public class FoursquareApiSample extends FragmentActivity {
+public class FoursquareApiSample extends  ActionBarActivity {
 
 	private ArrayList<Marker> markers = new ArrayList<Marker>();
 	
 	private FoursquareApi foursquareApi;
 	
 	private SharedPreferences prefs;
-	private TextView apiResponseCode; 
-	private TextView checkinText;
+	private TextView responseCode; 
 	
 	private GoogleMap googleMap;
 
@@ -47,10 +47,6 @@ public class FoursquareApiSample extends FragmentActivity {
 	String venueAddress = null;
 	String venueId = null;
 	 
-	View checkinSection;
-	
-	private boolean showCheckinSection = false;
-
 	private SupportMapFragment mapFragment;
 
 	private OAuth2Helper oAuth2Helper;
@@ -62,14 +58,15 @@ public class FoursquareApiSample extends FragmentActivity {
 		this.prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		oAuth2Helper = new OAuth2Helper(this.prefs);
 		
-		this.checkinSection = findViewById(R.id.checkin_section);
-		this.checkinText = (TextView) findViewById(R.id.checkin_text);
-		this.apiResponseCode = (TextView) findViewById(R.id.response_code);
+		this.responseCode = (TextView) findViewById(R.id.response_code);
 		
 		mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
 		googleMap = mapFragment.getMap();
 		googleMap.setMyLocationEnabled(true);
 		
+		/**
+		 * Loads up the Foursquare venue list based on where the user clicked on the map.
+		 */
 		googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
 			
 			@Override
@@ -79,7 +76,18 @@ public class FoursquareApiSample extends FragmentActivity {
 			}
 		});
 		
-		this.checkinSection.setVisibility(View.GONE);
+		
+		/**
+		 * Performs a Foursquare checkin to the place the user selected in the previous screen.
+		 * We retrieve our access token from the CredentialStore, load up the FoursquareApi and perform the checkin.
+		 */
+		googleMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+			
+			@Override
+			public void onInfoWindowClick(Marker marker) {
+				new CheckinTask().execute();
+			}
+		});
 		
 		if (getIntent().getExtras()!=null) {
 	    	Double lat = getIntent().getExtras().getDouble(Constants.PLACE_LAT_FIELD);
@@ -88,9 +96,9 @@ public class FoursquareApiSample extends FragmentActivity {
 	    	venueName = getIntent().getExtras().getString(Constants.PLACE_NAME_FIELD);
 	    	venueId = getIntent().getExtras().getString(Constants.PLACE_ID_FIELD);
 	    	
+	    	responseCode.setText("Click on the marker balloon to checkin to the venue. This will result in a real Foursquare checkin.");
+	    	
 	        addMarkerToMap(new LatLng(lat,lng), venueName, venueAddress);
-	        showCheckinSection = true;	
-	        this.checkinSection.setVisibility(View.VISIBLE);
 	    }
 		
 		
@@ -114,7 +122,7 @@ public class FoursquareApiSample extends FragmentActivity {
 			public void onClick(View v) {
 				try {
 					clearCredentials();
-					new PerformApiCallTask().execute();
+					new ValidateAccessTokenTask().execute();
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -122,30 +130,27 @@ public class FoursquareApiSample extends FragmentActivity {
 
 		});
 		
-		/**
-		 * Performs a Foursquare checkin to the place the user selected in the previous screen.
-		 * We retrieve our access token from the CredentialStore, load up the FoursquareApi and perform the checkin.
-		 */
-		Button checkinButton = (Button)findViewById(R.id.btn_checkin);
-	    checkinButton.setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				new CheckinTask().execute();
-			}
-		});
-		
-		new PerformApiCallTask().execute();
+		new ValidateAccessTokenTask().execute();
 	}
 	
 	public void addMarkerToMap(LatLng latLng,String title,String snippet) {
 	    Marker marker = googleMap.addMarker(new MarkerOptions().position(latLng)
-	             .title("title")
-	             .snippet("snippet"));
+	             .title(title)
+	             .snippet(snippet));
 	    markers.add(marker);
+	    marker.showInfoWindow();
 	    
 	    googleMap.animateCamera(
 	    		CameraUpdateFactory.newCameraPosition(CameraPosition.fromLatLngZoom(latLng, 10)) 
         );           	    
 
+	}
+	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+	    // Inflate the menu
+	    getMenuInflater().inflate(R.menu.main_menu, menu);
+	    return super.onCreateOptionsMenu(menu);
 	}
 	
 	/**
@@ -156,22 +161,16 @@ public class FoursquareApiSample extends FragmentActivity {
 	 */
     private void clearCredentials() throws IOException {
     	this.oAuth2Helper.clearCredentials();
-    	this.checkinSection.setVisibility(View.GONE);
-    	hideMap();
+    	new ValidateAccessTokenTask().execute();
     }
-	
-    private void hideMap() {
-//    	FragmentManager fm = getSupportFragmentManager();
-//    	FragmentTransaction ft = fm.beginTransaction();
-//    	ft.hide(this.mapFragment).commit();		
-	}
 
-    private void showMap() {
-//    	FragmentManager fm = getSupportFragmentManager();
-//    	FragmentTransaction ft = fm.beginTransaction();
-//    	ft.show(this.mapFragment).commit();		
-	}
-
+	/**
+	 * 
+	 * Task for checking into a certain venue.
+	 * 
+	 * @author Corei5Amt
+	 *
+	 */
     private class CheckinTask extends AsyncTask<Uri, Void, Void> {
 
 		private String apiStatusMsg;
@@ -198,15 +197,26 @@ public class FoursquareApiSample extends FragmentActivity {
 		@Override
 		protected void onPostExecute(Void result) {
 			Toast.makeText(FoursquareApiSample.this, apiStatusMsg, Toast.LENGTH_LONG).show();
+			responseCode.setText(apiStatusMsg); 
 		}
 
 	}
     
     
-    private class PerformApiCallTask extends AsyncTask<Uri, Void, Void> {
+    /**
+     * 
+     * This AsyncTask will do an API call with the access token to verify
+     * if the access token was indeed valid. If it returned an error it means that
+     * either the access token was not there, or it was invalid, meaning the user needs 
+     * to login to foursquare again.
+     * 
+     * @author Corei5Amt
+     *
+     */
+    private class ValidateAccessTokenTask extends AsyncTask<Uri, Void, Void> {
 
-		private boolean apiCallSuccess=false;
 		private String apiStatusMsg;
+
 		@Override
 		protected Void doInBackground(Uri...params) {
 			try {
@@ -214,10 +224,8 @@ public class FoursquareApiSample extends FragmentActivity {
 				Result<Setting> result = getFoursquareApi().settingsAll();
 				
 			    if (result.getMeta().getCode() == 200) {
-			    	apiStatusMsg = "OK - user sends to Twitter = " +  result.getResult().getSendToTwitter();
-			    	apiCallSuccess=true;
+			    	apiStatusMsg = "User logged in to Foursquare. Click on an area on the map to pop the venue list.";
 			    } else {
-			    	apiCallSuccess=false;
 			    	StringBuffer sb = new StringBuffer();
 					sb.append("Error occured: ");
 					sb.append("  code: " + result.getMeta().getCode());
@@ -228,7 +236,8 @@ public class FoursquareApiSample extends FragmentActivity {
 
 			} catch (Exception ex) {
 				ex.printStackTrace();
-				apiResponseCode.setText("Error occured : " + ex.getMessage());
+				apiStatusMsg = "Error occured : " + ex.getMessage();
+				
 			}
             return null;
 		}
@@ -239,16 +248,7 @@ public class FoursquareApiSample extends FragmentActivity {
 		
 		@Override
 		protected void onPostExecute(Void result) {
-			if (apiCallSuccess) {
-				showMap();
-				if (showCheckinSection) {
-					checkinText.setText(venueName + " " + venueAddress);
-				}
-			} else {
-				hideMap();
-				apiResponseCode.setText(apiStatusMsg);
-			}
-
+			responseCode.setText(apiStatusMsg);
 		}
 
 	}

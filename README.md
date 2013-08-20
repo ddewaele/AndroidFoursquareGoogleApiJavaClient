@@ -44,6 +44,33 @@ M2E expects all library project dependencies to be present in the workspace as M
 ![](https://dl.dropboxusercontent.com/u/13246619/Blog%20Articles/AndroidMavenSetup/5_playservices_import.PNG)
 ![](https://dl.dropboxusercontent.com/u/13246619/Blog%20Articles/AndroidMavenSetup/6_dependency_warning.PNG)
 
+### Library project setup
+
+####Google Play Services
+
+This project needs to be in your project workspace. The actual files should remain in the sdk folder.
+
+    C:\SOFT\adt-bundle-windows-x86_64-20130729\sdk\extras\google\google_play_services\libproject\google-play-services_lib
+
+You need to add the following pom.xml to this project
+
+https://gist.github.com/ddewaele/6277487
+
+This ensures that it is a mavenized project in your workspace. (simply drop the pom.xml in your project and do a `Convert to Maven` on the project.
+
+####Compatibility-v7-appcompat
+
+This project needs to be in your project workspace. The actual files should remain in the sdk folder.
+
+    C:\SOFT\adt-bundle-windows-x86_64-20130729\sdk\extras\android\support\v7\appcompat
+
+You need to add the following pom.xml to this project
+
+https://gist.github.com/ddewaele/6277476
+
+This ensures that it is a mavenized project in your workspace. (simply drop the pom.xml in your project and do a `Convert to Maven` on the project.
+
+
 ### Android Maps V2 API Key
 
 This project uses the Google Maps V2 API for Android and requires you to retrieve an API key that you need to put in your manifest.

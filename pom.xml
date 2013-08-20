@@ -44,20 +44,44 @@
   </dependency>
 		
 
-		<!--  Notice how we use groupId=android and artifactId-android here. These versions (coming from https://github.com/mosabua/maven-android-sdk-deployer) don't contain xpp -->	    
-		<dependency>
-			<groupId>android</groupId>
-			<artifactId>android</artifactId>
-			<version>${platform.version}</version>
-			<scope>provided</scope>
-		</dependency>
+	<!--  
+	Notice how we use groupId=android and artifactId=android here. 
+	These versions (coming from https://github.com/mosabua/maven-android-sdk-deployer) don't contain xpp 
+	-->	    
+	<dependency>
+		<groupId>android</groupId>
+		<artifactId>android</artifactId>
+		<version>${platform.version}</version>
+		<scope>provided</scope>
+	</dependency>
 
 <dependency>
   <groupId>android.support</groupId>
-  <artifactId>compatibility-v13</artifactId>
+  <artifactId>compatibility-v7-appcompat</artifactId>
   <version>18</version>
+  <type>apklib</type>
 </dependency>
 
+<dependency>
+  <groupId>android.support</groupId>
+  <artifactId>compatibility-v7-appcompat</artifactId>
+  <version>18</version>
+  <type>jar</type>
+</dependency>
+
+<dependency>
+  <groupId>android.support</groupId>
+  <artifactId>compatibility-v4</artifactId>
+  <version>18</version>
+  <type>jar</type>
+</dependency>
+
+<!--  <dependency> -->
+<!--       <groupId>com.google.android</groupId> -->
+<!--       <artifactId>support-v4</artifactId> -->
+<!--       <version>r11</version> -->
+<!--     </dependency> -->
+    
 		 <dependency>
       <groupId>com.google.oauth-client</groupId>
       <artifactId>google-oauth-client</artifactId>
