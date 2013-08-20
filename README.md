@@ -12,7 +12,8 @@ This project is built using the [m2e-android plugin](http://rgladwell.github.io/
 When using Eclipse ADT, it assumes that the following components are installed :
 
 - Eclipse Market Client
-- m2e-android plugin
+- [m2e-android plugin](http://rgladwell.github.io/m2e-android/index.html)
+- [maven-android-sdk-deployer](https://github.com/mosabua/)
 
 ### Eclipse MarkerPlace
 
@@ -31,6 +32,11 @@ Once you have the Eclipse Market Client installed, you can proceed to install th
 ![](https://dl.dropboxusercontent.com/u/13246619/Blog%20Articles/AndroidMavenSetup/3_android_m2e.PNG)
 
 More instructions can be found on the [m2e-android plugin](http://rgladwell.github.io/m2e-android/index.html) site.
+
+### maven-android-sdk-deployer
+
+Clone the maven-android-sdk-deployer and execute mvn install. This will install the required projects into your local maven repository.
+For more info, checkout [maven-android-sdk-deployer](https://github.com/mosabua/)
 
 ### Environment setup
 
