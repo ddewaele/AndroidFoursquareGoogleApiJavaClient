@@ -15,9 +15,9 @@ When using Eclipse ADT, it assumes that the following components are installed :
 - [m2e-android plugin](http://rgladwell.github.io/m2e-android/index.html)
 - [maven-android-sdk-deployer](https://github.com/mosabua/)
 
-### Eclipse MarkerPlace
+### Eclipse MarketPlace
 
-If you don't have the Eclipse Marker Client installed, you can install it by clicking on 
+If you don't have the Eclipse Market Client installed, you can install it by clicking on 
 
 ```Help → Install new Software → Switch to the Juno Repository → General Purpose Tools → Marketplace Client```
 
