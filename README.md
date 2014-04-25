@@ -35,8 +35,7 @@ More instructions can be found on the [m2e-android plugin](http://rgladwell.gith
 
 ### maven-android-sdk-deployer
 
-Clone the maven-android-sdk-deployer and execute mvn install. This will install the required projects into your local maven repository.
-For more info, checkout [maven-android-sdk-deployer](https://github.com/mosabua/)
+Clone the [maven-android-sdk-deployer](https://github.com/mosabua/maven-android-sdk-deployer) and execute mvn install. This will install the required projects into your local maven repository.
 
 ### Environment setup
 
